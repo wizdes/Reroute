@@ -1,5 +1,24 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><title>Reroute</title></head>
-<body><div id="app">Reroute</div></body>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+  <title>Reroute</title>
+</head>
+<body>
+  <div class="pop">
+    <div class="pop-head">
+      <img src="../icons/icon-48.png" alt="" width="20" height="20">
+      <b>Reroute</b>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="master">
+      <span class="switch-track"></span>
+      <span id="master-label">On</span>
+    </label>
+    <div id="status" class="status"></div>
+    <button id="edit" class="btn">Edit rules</button>
+  </div>
+  <script type="module" src="popup.js"></script>
+</body>
 </html>

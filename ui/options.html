@@ -1,5 +1,37 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><title>Reroute</title></head>
-<body><div id="app">Reroute</div></body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reroute</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="../icons/icon-48.png" alt="" width="22" height="22">
+      <span>Reroute</span>
+    </div>
+    <div class="topbar-actions">
+      <label class="switch" title="Turn all redirects on or off">
+        <input type="checkbox" id="master-toggle">
+        <span class="switch-track"></span>
+        <span class="switch-label" id="master-label">On</span>
+      </label>
+      <button class="btn ghost" id="import-btn">Import</button>
+      <button class="btn ghost" id="export-btn">Export</button>
+      <button class="btn primary" id="new-rule-btn">+ New rule</button>
+      <input type="file" id="import-file" accept="application/json" hidden>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <ul class="rule-list" id="rule-list"></ul>
+    </aside>
+    <section class="editor" id="editor"></section>
+  </main>
+
+  <script type="module" src="options.js"></script>
+</body>
 </html>
