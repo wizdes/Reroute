@@ -5,12 +5,14 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "node --test test/",
+    "test": "node --test test/*.test.mjs",
+    "test:ui": "node test/ui.mjs",
     "test:browser": "node test/browser.mjs",
     "icons": "node tools/gen-icons.mjs",
     "package": "node tools/package.mjs"
   },
   "devDependencies": {
-    "playwright": "^1.49.0"
+    "playwright": "^1.49.0",
+    "re2-wasm": "^1.0.2"
   }
 }
