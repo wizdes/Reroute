@@ -43,6 +43,12 @@ test('non-URL inputs fall back to generic prefix/suffix diff', () => {
   assert.equal(r.resultUrl, 'keep-this-OTHER-end');
 });
 
+test('inference escapes a literal $ in the target so it still round-trips', () => {
+  assert.ok(roundTrips('https://a.com/x', 'https://a.com/y?p=$2'));
+  const draft = infer('https://a.com/x', 'https://a.com/y?p=$2');
+  assert.ok(draft.to.includes('$$2'), `expected an escaped $$ in ${draft.to}`);
+});
+
 test('empty inputs return empty draft', () => {
   assert.deepEqual(infer('', 'x'), { from: '', to: 'x' });
   assert.deepEqual(infer('x', ''), { from: 'x', to: '' });

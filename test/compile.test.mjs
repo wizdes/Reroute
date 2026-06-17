@@ -134,3 +134,13 @@ test('debugUrl reports global off', () => {
   assert.equal(res.winner, null);
   assert.equal(res.reasons[0].status, 'skipped');
 });
+
+test('$$ is a literal dollar everywhere', () => {
+  // production format
+  assert.equal(toRegexSubstitution('a$$b$1'), 'a$b\\1');
+  // preview substitution
+  assert.equal(evalRule({ from: 'https://a.com/*', to: '$1-$$-end' }, 'https://a.com/x').resultUrl, 'x-$-end');
+  // validation: an escaped $$5 is not a capture reference
+  assert.equal(validateRule({ from: 'https://a.com/*', to: 'price$$5/$1' }).length, 0);
+  assert.equal(validateRule({ from: 'no-wildcards', to: '$$1' }).length, 0);
+});

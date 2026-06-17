@@ -26,14 +26,15 @@ const escapeHtml = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // Render the result URL with each captured segment highlighted where it lands.
+// `$$` is a literal dollar; `$1..$9` are captures.
 function resultHtml(to, captures) {
   let out = '';
   let last = 0;
-  const re = /\$(\d)/g;
+  const re = /\$(\$|\d)/g;
   let m;
   while ((m = re.exec(to))) {
     out += escapeHtml(to.slice(last, m.index));
-    out += `<mark>${escapeHtml(captures[Number(m[1]) - 1] ?? '')}</mark>`;
+    out += m[1] === '$' ? '$' : `<mark>${escapeHtml(captures[Number(m[1]) - 1] ?? '')}</mark>`;
     last = m.index + m[0].length;
   }
   return out + escapeHtml(to.slice(last));
@@ -365,7 +366,7 @@ function toast(msg) {
 // ---------- init ----------
 async function init() {
   const s = await getState();
-  state.rules = s.rules.map((r) => ({ resourceTypes: ['main_frame'], examples: [], ...r }));
+  state.rules = s.rules.map((r) => ({ resourceTypes: ['main_frame'], examples: [], ...r, enabled: r.enabled !== false }));
   state.enabled = s.enabled;
   state.selectedId = state.rules[0]?.id ?? null;
 

@@ -10,7 +10,26 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { RE2 } from 're2-wasm';
-import { wildcardToRegex, evalRule } from '../src/compile.js';
+import { wildcardToRegex, evalRule, toRegexSubstitution } from '../src/compile.js';
+
+// An INDEPENDENT interpreter of Chrome DNR's regexSubstitution string (\0..\9 insert
+// capture groups, \\ is a literal backslash, everything else literal). Used to check the
+// production substitution format without reusing evalRule's own $n logic — so the
+// substitution conformance below is not circular.
+function applyDnrSubstitution(sub, match) {
+  let out = '';
+  for (let i = 0; i < sub.length; i++) {
+    if (sub[i] === '\\') {
+      const n = sub[i + 1];
+      if (n === '\\') { out += '\\'; i++; }
+      else if (/\d/.test(n)) { out += match[Number(n)] ?? ''; i++; }
+      else { out += '\\'; }
+    } else {
+      out += sub[i];
+    }
+  }
+  return out;
+}
 
 const PATTERNS = [
   'https://github.com/*',
@@ -79,19 +98,22 @@ test('JS RegExp and RE2 agree on match + captures for every pattern/URL pair', (
   assert.ok(pairs >= 100, `expected a real corpus, got ${pairs} pairs`);
 });
 
-test('evalRule output matches RE2-driven substitution', () => {
-  // The user-visible result URL must be what RE2's captures would produce.
+test('preview result == DNR regexSubstitution applied to RE2 captures (non-circular)', () => {
+  // For each case: the editor preview (evalRule, $n form) must equal Chrome's production
+  // substitution (toRegexSubstitution's \n string, interpreted independently) over the
+  // SAME RE2 captures. This exercises both substitution code paths against a third oracle.
   const cases = [
     { from: 'https://github.com/*', to: 'https://dev.github.com/$1', url: 'https://github.com/a/b' },
     { from: 'https://a.com/*/issues/*', to: 'https://b.com/$2/$1', url: 'https://a.com/repo/issues/42' },
     { from: 'https://multi.com/*/*/*', to: '$3.$2.$1', url: 'https://multi.com/x/y/z' },
+    { from: 'https://p.com/*', to: 'https://q.com/cost-is-$$5?ref=$1', url: 'https://p.com/abc' }, // literal $$
   ];
   for (const c of cases) {
     const { source } = wildcardToRegex(c.from);
     const re2 = re2Exec(source, c.url);
     assert.ok(re2, `RE2 should match ${c.url}`);
-    const re2Result = c.to.replace(/\$(\d)/g, (_, d) => re2[Number(d)] ?? '');
-    const ours = evalRule(c, c.url);
-    assert.equal(ours.resultUrl, re2Result, `result URL mismatch for ${c.url}`);
+    const production = applyDnrSubstitution(toRegexSubstitution(c.to), re2);
+    const preview = evalRule(c, c.url).resultUrl;
+    assert.equal(preview, production, `preview/production substitution mismatch for ${c.url}`);
   }
 });

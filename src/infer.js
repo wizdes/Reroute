@@ -21,6 +21,10 @@ export function commonSuffixLen(a, b, reserve = 0) {
   return i;
 }
 
+// Literal text placed into a "to" template must escape `$` (the capture sigil) as `$$`,
+// or a destination containing e.g. "$2" would be read as a capture reference.
+const escDollar = (s) => s.replace(/\$/g, '$$$$');
+
 export function infer(fromUrl, toUrl) {
   const from = (fromUrl ?? '').trim();
   const to = (toUrl ?? '').trim();
@@ -50,8 +54,8 @@ export function infer(fromUrl, toUrl) {
 
   if (fromMid === toMid) {
     // nothing varies in the middle: carry it through with a capture
-    return { from: `${prefix}*${suffix}`, to: `${prefix}$1${suffix}` };
+    return { from: `${prefix}*${suffix}`, to: `${escDollar(prefix)}$1${escDollar(suffix)}` };
   }
   // the middle is a constant swap: wildcard it on the left, hardcode the new value
-  return { from: `${prefix}*${suffix}`, to: `${prefix}${toMid}${suffix}` };
+  return { from: `${prefix}*${suffix}`, to: `${escDollar(prefix)}${escDollar(toMid)}${escDollar(suffix)}` };
 }

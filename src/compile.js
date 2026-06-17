@@ -38,19 +38,25 @@ export function wildcardToRegex(from) {
 }
 
 /**
- * Convert a "to" target (with $1..$9) into a DNR regexSubstitution string (\1..\9).
+ * Convert a "to" target into a DNR regexSubstitution string.
+ *   $1..$9 -> \1..\9 (capture references)
+ *   $$     -> $       (an escaped literal dollar)
  * Existing backslashes are escaped first so they survive as literals.
  */
 export function toRegexSubstitution(to) {
   return to
     .replace(/\\/g, '\\\\')
-    .replace(/\$(\d)/g, (_, d) => '\\' + d);
+    .replace(/\$(\$|\d)/g, (_, c) => (c === '$' ? '$' : '\\' + c));
 }
 
-/** Highest $n referenced in a "to" target (0 if none). */
+/** Highest $n referenced in a "to" target (0 if none). `$$` is a literal, not a ref. */
 function maxReference(to) {
   let max = 0;
-  for (const m of to.matchAll(/\$(\d)/g)) max = Math.max(max, Number(m[1]));
+  const re = /\$(\$|\d)/g;
+  let m;
+  while ((m = re.exec(to))) {
+    if (m[1] !== '$') max = Math.max(max, Number(m[1]));
+  }
   return max;
 }
 
@@ -147,7 +153,7 @@ export function evalRule(rule, url) {
   if (!m) return { matched: false };
 
   const captures = m.slice(1);
-  const resultUrl = rule.to.replace(/\$(\d)/g, (_, d) => m[Number(d)] ?? '');
+  const resultUrl = rule.to.replace(/\$(\$|\d)/g, (_, c) => (c === '$' ? '$' : m[Number(c)] ?? ''));
   return { matched: true, resultUrl, captures, matchIndex: m.index, matchLength: m[0].length };
 }
 

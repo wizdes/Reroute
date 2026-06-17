@@ -36,6 +36,22 @@ for you to run on your desktop. Nothing was pushed, no remote repo created, noth
    publish the zip to the Chrome Web Store. I created no remote and pushed nothing.
 4. Pick the final product name if "Reroute" isn't it (it's baked into manifest + repo only).
 
+## Review (Tier 3 engine, independent Opus reviewer)
+
+One correctness-only review pass over the engine + sync + inference. Verdict: the
+"preview == production" core (`compile.js`, `background.js` sync) is correct. Three real
+findings, all fixed:
+- **Fixed (High):** the `to` language had no escape for a literal `$`+digit, so `infer`
+  could emit a broken draft (a destination containing e.g. `$2`). Added `$$` → literal `$`,
+  handled symmetrically in `toRegexSubstitution`, `evalRule`, `validateRule`, and the editor
+  preview; `infer` now escapes literal `$` it emits. New unit tests cover it.
+- **Fixed (Medium):** the substitution conformance test was circular. Rewrote it to interpret
+  Chrome's DNR `\n` substitution string independently and cross-check both paths.
+- **Fixed (Low):** `init()` now defaults `enabled !== false` for legacy storage entries
+  (parity with import).
+
+After fixes: 25 node tests + 11 UI checks, all green.
+
 ## Decision log (assumptions + judgment calls)
 
 - **D1 — Live extension gate couldn't run here; pivoted verification.** Chrome 137+ ignores
