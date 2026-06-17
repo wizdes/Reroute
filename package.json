@@ -1,0 +1,16 @@
+{
+  "name": "reroute",
+  "version": "0.1.0",
+  "description": "Chrome MV3 extension: redirect URLs with simple wildcard rules, and test them before you save.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/",
+    "test:browser": "node test/browser.mjs",
+    "icons": "node tools/gen-icons.mjs",
+    "package": "node tools/package.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}
