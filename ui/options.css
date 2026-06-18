@@ -38,12 +38,15 @@ html, body {
   border-bottom: 1px solid var(--border);
 }
 .brand { display: flex; align-items: center; gap: 9px; font-weight: 650; font-size: 16px; }
-.topbar-actions { display: flex; align-items: center; gap: 10px; }
+.topbar-actions { display: flex; align-items: center; gap: 12px; }
 
 .btn {
   font: inherit;
   font-weight: 550;
-  padding: 7px 13px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
   border-radius: 8px;
   border: 1px solid var(--border-strong);
   background: var(--panel);
@@ -55,16 +58,16 @@ html, body {
 .btn.primary:hover { background: #4338ca; }
 .btn.ghost { border-color: transparent; color: var(--muted); }
 .btn.ghost:hover { background: #f4f4f5; color: var(--text); }
-.btn.danger { color: var(--bad); border-color: transparent; }
-.btn.danger:hover { background: var(--bad-soft); }
-.btn.small { padding: 4px 9px; font-size: 13px; }
+.btn.danger { color: var(--bad); border-color: var(--border-strong); background: var(--panel); }
+.btn.danger:hover { background: var(--bad-soft); border-color: #fecaca; }
+.btn.small { height: 28px; padding: 0 10px; font-size: 13px; }
 
-/* switch */
-.switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+/* switch (sized to match .btn height so the top bar lines up) */
+.switch { display: inline-flex; align-items: center; gap: 9px; height: 34px; cursor: pointer; user-select: none; }
 .switch input { display: none; }
 .switch-track {
   width: 38px; height: 22px; border-radius: 999px; background: var(--border-strong);
-  position: relative; transition: background .15s;
+  position: relative; transition: background .15s; flex: none;
 }
 .switch-track::after {
   content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
@@ -72,28 +75,32 @@ html, body {
 }
 .switch input:checked + .switch-track { background: var(--accent); }
 .switch input:checked + .switch-track::after { transform: translateX(16px); }
-.switch-label { font-size: 13px; color: var(--muted); min-width: 22px; }
+.switch-label { font-size: 14px; color: var(--muted); min-width: 24px; }
 
 /* ---------- layout ---------- */
 .layout {
   display: grid;
   grid-template-columns: 270px 1fr;
-  gap: 18px;
+  column-gap: 0;
+  row-gap: 0;
   max-width: 1100px;
   margin: 0 auto;
   padding: 20px;
   align-items: start;
 }
 
+/* ---------- sidebar ---------- */
+.sidebar { display: flex; flex-direction: column; gap: 12px; }
+#new-rule-btn { align-self: center; }
+
 /* ---------- rule list ---------- */
-.rule-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.rule-list { list-style: none; margin: 0; padding: 0 16px 0 0; display: flex; flex-direction: column; gap: 6px; }
 .rule-item {
   display: flex; align-items: center; gap: 8px;
   padding: 9px 10px; background: var(--panel);
   border: 1px solid var(--border); border-radius: 9px; cursor: pointer;
 }
 .rule-item:hover { border-color: var(--border-strong); }
-.rule-item.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .rule-item.dragging { opacity: .4; }
 .rule-item.disabled .rule-name { color: var(--muted); text-decoration: line-through; }
 .rule-item .grip { color: #c4c4c8; cursor: grab; font-size: 13px; }
@@ -102,15 +109,29 @@ html, body {
 .rule-item .mini { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .list-empty { color: var(--muted); padding: 14px 6px; font-size: 13px; }
 
+/* selected row connects into the editor panel (one continuous accent outline) */
+.rule-item.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  margin-right: -17px;             /* bridge the 16px list gutter + overlap the panel's 1px border */
+  border-right: none;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  position: relative;
+  z-index: 2;
+}
+
 /* ---------- editor ---------- */
+#rule-editor { display: flex; flex-direction: column; gap: 12px; }
 .editor { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .card {
   background: var(--panel); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 16px;
 }
 .card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 650; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.card.rule-panel { border-color: var(--accent); }   /* the editor side of the connection */
 .editor-empty { color: var(--muted); text-align: center; padding: 60px 20px; }
-.editor-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.editor-delete { display: flex; justify-content: center; }
 
 .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
 .field:last-child { margin-bottom: 0; }
@@ -124,37 +145,17 @@ html, body {
 .hint { font-size: 12px; color: var(--muted); }
 .errors { color: var(--bad); font-size: 12px; margin-top: 6px; min-height: 0; }
 
+/* advanced (applies-to) */
+.advanced { margin-top: 2px; }
+.advanced-toggle {
+  font: inherit; font-size: 13px; font-weight: 550; color: var(--accent);
+  background: none; border: none; padding: 4px 0; cursor: pointer;
+}
+.advanced-toggle:hover { text-decoration: underline; }
+.advanced-body { margin: 10px 0 0; }
+.advanced-body[hidden] { display: none; }
 .applies { display: flex; gap: 16px; }
 .applies label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); font-weight: 500; }
-
-/* ---------- tester ---------- */
-.test-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.examples { display: flex; flex-direction: column; gap: 8px; }
-.example-row { display: grid; grid-template-columns: 1fr; gap: 4px; }
-.example-input-line { display: flex; gap: 8px; align-items: center; }
-.example-input-line input {
-  flex: 1; font: 13px/1.4 var(--mono); padding: 7px 9px;
-  border: 1px solid var(--border-strong); border-radius: 7px;
-}
-.example-input-line input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.x-btn { border: none; background: none; color: #c4c4c8; cursor: pointer; font-size: 16px; padding: 0 4px; }
-.x-btn:hover { color: var(--bad); }
-
-.result { font: 13px/1.4 var(--mono); padding: 2px 2px 2px 26px; position: relative; word-break: break-all; }
-.result::before { position: absolute; left: 4px; top: 2px; font-family: system-ui; }
-.result.match { color: var(--text); }
-.result.match::before { content: "→"; color: var(--ok); font-weight: 700; }
-.result.nomatch { color: var(--muted); }
-.result.nomatch::before { content: "✕"; color: var(--border-strong); }
-.result.error { color: var(--bad); }
-.result.error::before { content: "!"; color: var(--bad); font-weight: 700; }
-.result mark { background: var(--accent-soft); color: var(--accent); border-radius: 3px; padding: 0 2px; }
-.test-actions { display: flex; gap: 8px; margin-top: 12px; }
-
-/* ---------- infer ---------- */
-.infer-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; }
-.infer-grid .field { margin-bottom: 0; }
-.infer-grid input { font-family: var(--mono); font-size: 13px; }
 
 /* ---------- reverse debugger ---------- */
 .debug-input-line { display: flex; gap: 8px; }
@@ -163,7 +164,7 @@ html, body {
   border: 1px solid var(--border-strong); border-radius: 8px;
 }
 .debug-input-line input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.debug-winner { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--ok-soft); border: 1px solid #bbf7d0; font: 13px/1.4 var(--mono); }
+.debug-winner { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--ok-soft); border: 1px solid #bbf7d0; font: 13px/1.4 var(--mono); word-break: break-all; }
 .debug-winner.none { background: var(--bad-soft); border-color: #fecaca; color: var(--bad); font-family: system-ui; }
 .debug-reasons { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .debug-reasons li { display: flex; align-items: center; gap: 10px; font-size: 13px; }

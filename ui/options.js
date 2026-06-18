@@ -1,6 +1,5 @@
-import { getState, saveRules, setEnabled, onExternalChange, currentTabUrl, isExtension } from './store.js';
-import { evalRule, validateRule, debugUrl } from '../src/compile.js';
-import { infer } from '../src/infer.js';
+import { getState, saveRules, setEnabled, onExternalChange } from './store.js';
+import { validateRule, debugUrl } from '../src/compile.js';
 
 const state = { rules: [], enabled: true, selectedId: null };
 let saveTimer = null;
@@ -22,23 +21,6 @@ function el(tag, props = {}, ...kids) {
   return n;
 }
 const uid = () => 'r' + Math.random().toString(36).slice(2, 9);
-const escapeHtml = (s) =>
-  String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-
-// Render the result URL with each captured segment highlighted where it lands.
-// `$$` is a literal dollar; `$1..$9` are captures.
-function resultHtml(to, captures) {
-  let out = '';
-  let last = 0;
-  const re = /\$(\$|\d)/g;
-  let m;
-  while ((m = re.exec(to))) {
-    out += escapeHtml(to.slice(last, m.index));
-    out += m[1] === '$' ? '$' : `<mark>${escapeHtml(captures[Number(m[1]) - 1] ?? '')}</mark>`;
-    last = m.index + m[0].length;
-  }
-  return out + escapeHtml(to.slice(last));
-}
 
 function scheduleSave() {
   clearTimeout(saveTimer);
@@ -118,7 +100,6 @@ function renderEditor() {
     return;
   }
 
-  if (!Array.isArray(rule.examples)) rule.examples = [];
   if (!Array.isArray(rule.resourceTypes) || !rule.resourceTypes.length) rule.resourceTypes = ['main_frame'];
 
   const errorsEl = el('div', { class: 'errors' });
@@ -137,13 +118,13 @@ function renderEditor() {
     rule.to = toInput.value;
     const li = document.querySelector(`.rule-item[data-id="${rule.id}"] .rule-from`);
     if (li) li.textContent = rule.from || '—';
-    refreshValidationAndPreview(rule, errorsEl, examplesEl);
+    errorsEl.textContent = validateRule(rule).join(' ');
     scheduleSave();
   };
   fromInput.addEventListener('input', onPattern);
   toInput.addEventListener('input', onPattern);
 
-  // applies-to
+  // applies-to (lives under the Advanced toggle)
   const types = new Set(rule.resourceTypes);
   const typeBox = (value, label) =>
     el('label', {},
@@ -158,116 +139,41 @@ function renderEditor() {
       }),
       label);
 
-  const examplesEl = el('div', { class: 'examples' });
+  const appliesBody = el('div', { class: 'field advanced-body' },
+    el('label', {}, 'Applies to'),
+    el('div', { class: 'applies' }, typeBox('main_frame', 'Page'), typeBox('sub_frame', 'Iframe')));
+
+  // collapsed by default, but open if the rule already uses a non-default resource type
+  const startOpen = !(rule.resourceTypes.length === 1 && rule.resourceTypes[0] === 'main_frame');
+  appliesBody.hidden = !startOpen;
+  const advToggle = el('button', {
+    class: 'advanced-toggle', type: 'button', 'aria-expanded': String(startOpen),
+    onclick: () => {
+      const show = appliesBody.hidden;
+      appliesBody.hidden = !show;
+      advToggle.setAttribute('aria-expanded', String(show));
+      advToggle.textContent = (show ? '▾' : '▸') + ' Advanced';
+    },
+  }, (startOpen ? '▾' : '▸') + ' Advanced');
 
   host.append(
-    // identity card
-    el('div', { class: 'card' },
-      el('div', { class: 'editor-head' },
-        el('div', { class: 'field', style: 'flex:1;margin:0' }, el('label', {}, 'Name'), nameInput),
-        el('button', { class: 'btn danger small', title: 'Delete rule', onclick: () => deleteRule(rule) }, 'Delete')),
-      el('div', { class: 'field', style: 'margin-top:12px' },
+    // the rule editor panel — this is what the selected list row connects to
+    el('div', { class: 'card rule-panel' },
+      el('div', { class: 'field' }, el('label', {}, 'Name'), nameInput),
+      el('div', { class: 'field' },
         el('label', {}, 'From — the URL to match'), fromInput,
         el('div', { class: 'hint' }, 'Use ', el('code', {}, '*'), ' to match any run of characters; the whole URL must match.')),
       el('div', { class: 'field' },
         el('label', {}, 'To — where to send it'), toInput,
         el('div', { class: 'hint' }, 'Reference each ', el('code', {}, '*'), ' as ', el('code', {}, '$1'), ', ', el('code', {}, '$2'), ' …'),
         errorsEl),
-      el('div', { class: 'field' },
-        el('label', {}, 'Applies to'),
-        el('div', { class: 'applies' }, typeBox('main_frame', 'Page'), typeBox('sub_frame', 'Iframe')))),
-
-    // tester card
-    el('div', { class: 'card' },
-      el('div', { class: 'test-head' },
-        el('h2', { style: 'margin:0' }, 'Test'),
-        el('button', { class: 'btn ghost small', title: isExtension ? '' : 'Only works inside the extension', onclick: useCurrentTab }, 'Use current tab')),
-      examplesEl,
-      el('div', { class: 'test-actions' },
-        el('button', { class: 'btn small', onclick: () => { rule.examples.push(''); renderExamples(rule, examplesEl); scheduleSave(); } }, '+ Add URL'))),
-
-    // infer card
-    el('div', { class: 'card' },
-      el('h2', {}, 'Make a rule from an example'),
-      buildInfer(rule, fromInput, toInput, errorsEl, examplesEl))
+      el('div', { class: 'advanced' }, advToggle, appliesBody)),
+    // delete, centered at the bottom
+    el('div', { class: 'editor-delete' },
+      el('button', { class: 'btn danger', title: 'Delete this rule', onclick: () => deleteRule(rule) }, 'Delete rule'))
   );
 
-  renderExamples(rule, examplesEl);
-  refreshValidationAndPreview(rule, errorsEl, examplesEl);
-}
-
-function buildInfer(rule, fromInput, toInput, errorsEl, examplesEl) {
-  const a = el('input', { type: 'text', placeholder: 'https://twitter.com/elonmusk', spellcheck: 'false' });
-  const b = el('input', { type: 'text', placeholder: 'https://nitter.net/elonmusk', spellcheck: 'false' });
-  const suggest = () => {
-    const draft = infer(a.value, b.value);
-    if (!draft.from || !draft.to) return;
-    rule.from = draft.from;
-    rule.to = draft.to;
-    fromInput.value = draft.from;
-    toInput.value = draft.to;
-    if (a.value && !rule.examples.includes(a.value)) rule.examples.unshift(a.value);
-    const li = document.querySelector(`.rule-item[data-id="${rule.id}"] .rule-from`);
-    if (li) li.textContent = rule.from;
-    renderExamples(rule, examplesEl);
-    refreshValidationAndPreview(rule, errorsEl, examplesEl);
-    scheduleSave();
-  };
-  b.addEventListener('keydown', (e) => { if (e.key === 'Enter') suggest(); });
-  return el('div', { class: 'infer-grid' },
-    el('div', { class: 'field' }, el('label', {}, 'From URL'), a),
-    el('div', { class: 'field' }, el('label', {}, 'To URL'), b),
-    el('button', { class: 'btn', onclick: suggest }, 'Suggest rule'));
-}
-
-function renderExamples(rule, container) {
-  container.innerHTML = '';
-  if (!rule.examples.length) {
-    container.append(el('div', { class: 'hint' }, 'Add an example URL to see exactly what this rule would do.'));
-    return;
-  }
-  rule.examples.forEach((ex, i) => {
-    const input = el('input', { type: 'text', value: ex, placeholder: 'https://…', spellcheck: 'false' });
-    const resultLine = el('div', { class: 'result' });
-    input.addEventListener('input', () => {
-      rule.examples[i] = input.value;
-      updateOneResult(rule, input.value, resultLine);
-      scheduleSave();
-    });
-    container.append(
-      el('div', { class: 'example-row' },
-        el('div', { class: 'example-input-line' }, input,
-          el('button', { class: 'x-btn', title: 'Remove', onclick: () => { rule.examples.splice(i, 1); renderExamples(rule, container); refreshValidationAndPreview(rule, document.querySelector('.errors'), container); scheduleSave(); } }, '×')),
-        resultLine));
-    updateOneResult(rule, ex, resultLine);
-  });
-}
-
-function updateOneResult(rule, url, lineEl) {
-  if (!url) { lineEl.className = 'result nomatch'; lineEl.textContent = ''; return; }
-  const errs = validateRule(rule);
-  if (errs.length) { lineEl.className = 'result nomatch'; lineEl.textContent = 'fix the rule above'; return; }
-  const r = evalRule(rule, url);
-  if (r.error) { lineEl.className = 'result error'; lineEl.textContent = r.error; }
-  else if (!r.matched) { lineEl.className = 'result nomatch'; lineEl.textContent = "doesn't match"; }
-  else { lineEl.className = 'result match'; lineEl.innerHTML = resultHtml(rule.to, r.captures); }
-}
-
-function refreshValidationAndPreview(rule, errorsEl, examplesEl) {
-  if (errorsEl) errorsEl.textContent = validateRule(rule).join(' ');
-  examplesEl.querySelectorAll('.example-row').forEach((row, i) => {
-    updateOneResult(rule, rule.examples[i] ?? '', row.querySelector('.result'));
-  });
-}
-
-async function useCurrentTab() {
-  const url = await currentTabUrl();
-  const rule = selected();
-  if (!rule) return;
-  if (!url) { toast(isExtension ? 'No active tab URL' : 'Current tab only works inside the extension'); return; }
-  rule.examples.push(url);
-  renderExamples(rule, document.querySelector('.examples'));
-  scheduleSave();
+  errorsEl.textContent = validateRule(rule).join(' ');
 }
 
 // ---------- reverse debugger ----------
@@ -302,9 +208,9 @@ function buildDebugger() {
     out);
 }
 
-// ---------- top bar actions ----------
+// ---------- actions ----------
 function newRule() {
-  const rule = { id: uid(), name: 'New rule', enabled: true, from: '', to: '', resourceTypes: ['main_frame'], examples: [''] };
+  const rule = { id: uid(), name: 'New rule', enabled: true, from: '', to: '', resourceTypes: ['main_frame'] };
   state.rules.unshift(rule);
   state.selectedId = rule.id;
   renderList();
@@ -341,7 +247,6 @@ function importRules(file) {
         from: r.from || '',
         to: r.to || '',
         resourceTypes: Array.isArray(r.resourceTypes) && r.resourceTypes.length ? r.resourceTypes : ['main_frame'],
-        examples: Array.isArray(r.examples) ? r.examples : [],
       }));
       state.selectedId = state.rules[0]?.id ?? null;
       renderList(); renderEditor(); saveRules(state.rules);
@@ -366,7 +271,7 @@ function toast(msg) {
 // ---------- init ----------
 async function init() {
   const s = await getState();
-  state.rules = s.rules.map((r) => ({ resourceTypes: ['main_frame'], examples: [], ...r, enabled: r.enabled !== false }));
+  state.rules = s.rules.map((r) => ({ resourceTypes: ['main_frame'], ...r, enabled: r.enabled !== false }));
   state.enabled = s.enabled;
   state.selectedId = state.rules[0]?.id ?? null;
 

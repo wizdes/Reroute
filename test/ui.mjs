@@ -50,22 +50,31 @@ async function run() {
     }, SEED);
     await page.goto(`${base}/ui/options.html`, { waitUntil: 'networkidle' });
 
-    // list shows seeded rules
+    // list shows seeded rules; New rule lives in the left column
     ok((await page.locator('.rule-item').count()) === 2, 'rule list shows both seeded rules');
+    ok((await page.locator('.sidebar #new-rule-btn').count()) === 1, '“+ New rule” is in the left column');
 
-    // select the GitHub rule, check the live tester results
+    // select the GitHub rule -> the editor panel shows and the row reads as selected/connected
     await page.locator('.rule-item', { hasText: 'GitHub' }).click();
-    await page.waitForSelector('.examples .result');
-    const results = page.locator('.examples .result');
-    const first = await results.nth(0);
-    const second = await results.nth(1);
-    ok((await first.getAttribute('class')).includes('match'), 'matching example shows a match');
-    ok((await first.textContent()).includes('https://dev.github.com/foo/bar'), 'shows the correct redirected URL');
-    ok((await first.locator('mark').count()) >= 1, 'captured segment is highlighted');
-    ok((await second.getAttribute('class')).includes('nomatch'), 'non-matching example shows no match');
-    await page.screenshot({ path: join(shotDir, '01-tester.png') });
+    await page.waitForSelector('.card.rule-panel');
+    ok((await page.locator('.rule-item.selected', { hasText: 'GitHub' }).count()) === 1, 'selected row carries the connected state');
 
-    // break the pattern -> live error/no-match without saving
+    // the per-rule Test box and the inference card are gone
+    ok((await page.locator('.examples').count()) === 0, 'the per-rule Test box is removed');
+    ok((await page.locator('.infer-grid').count()) === 0, '“Make a rule from an example” is removed');
+
+    // Delete sits at the bottom of the editor, centered
+    ok((await page.locator('#rule-editor .editor-delete .btn.danger').count()) === 1, 'Delete is at the bottom of the editor');
+    await page.screenshot({ path: join(shotDir, '01-editor.png') });
+
+    // Applies-to is hidden until Advanced is opened
+    ok(!(await page.locator('.advanced-body').isVisible()), 'Applies-to is hidden until Advanced is opened');
+    await page.locator('.advanced-toggle').click();
+    await page.waitForTimeout(80);
+    ok(await page.locator('.advanced-body').isVisible(), 'Advanced reveals Applies-to');
+    await page.screenshot({ path: join(shotDir, '02-advanced.png') });
+
+    // inline validation still works as you type
     const toInput = page.locator('#rule-editor input.mono').nth(1);
     await toInput.fill('https://dev.github.com/$3');
     await page.waitForTimeout(120);
@@ -73,7 +82,7 @@ async function run() {
     await toInput.fill('https://dev.github.com/$1'); // restore
     await page.waitForTimeout(120);
 
-    // reverse debugger (run while the GitHub rule is still intact)
+    // reverse debugger — testing now lives here
     await page.locator('#debugger input').fill('https://github.com/anthropics/claude-code');
     await page.locator('#debugger').getByText('Check').click();
     await page.waitForTimeout(120);
@@ -83,17 +92,11 @@ async function run() {
     await page.locator('#debugger').scrollIntoViewIfNeeded();
     await page.screenshot({ path: join(shotDir, '03-debugger.png') });
 
-    // inference: from->to draft replaces the selected rule and matches live
-    await page.locator('.infer-grid input').nth(0).fill('https://twitter.com/elonmusk');
-    await page.locator('.infer-grid input').nth(1).fill('https://nitter.net/elonmusk');
-    await page.getByText('Suggest rule').click();
-    await page.waitForTimeout(150);
-    const fromVal = await page.locator('#rule-editor input.mono').nth(0).inputValue();
-    ok(fromVal === 'https://twitter.com/*', 'inference drafted the wildcard pattern');
-    ok((await page.locator('.examples .result').first().getAttribute('class')).includes('match'),
-      'the inferred rule immediately matches its example');
-    await page.locator('#rule-editor').scrollIntoViewIfNeeded();
-    await page.screenshot({ path: join(shotDir, '02-inference.png') });
+    // “+ New rule” adds a rule to the sidebar list
+    const before = await page.locator('.rule-item').count();
+    await page.locator('.sidebar #new-rule-btn').click();
+    await page.waitForTimeout(80);
+    ok((await page.locator('.rule-item').count()) === before + 1, '“+ New rule” adds a rule to the list');
 
     // popup
     const pop = await browser.newPage({ viewport: { width: 230, height: 150 }, deviceScaleFactor: 2 });
