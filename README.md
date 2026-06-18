@@ -47,11 +47,11 @@ npm run package        # build dist/reroute-v<version>.zip for the Web Store
 1. `chrome://extensions` → enable **Developer mode** → **Load unpacked** → pick this folder.
 2. Open the extension's **Options** to manage rules; the toolbar popup is the global on/off.
 
-> Note: Chrome 137+ ignores the old `--load-extension` command-line switch, so the automated
-> live gate (`test/browser.mjs`) loads the extension via the CDP `Extensions.loadUnpacked`
-> command and must run on a machine with a real display (headed Chrome). On a headless box
-> the MV3 service worker won't start; use `npm test` + `npm run test:ui` there, and run
-> `npm run test:browser` on your desktop.
+> Note: Chrome 137+ ignores the old `--load-extension` switch, and under Playwright's
+> Chrome-for-Testing a CDP-loaded extension loads but stays inert (no service worker, pages
+> blocked, DNR rules don't fire), so `npm run test:browser` can't drive it. Verify the live
+> redirect with the manual load above in **regular Chrome** — that's the reliable check.
+> `npm test` + `npm run test:ui` cover everything else automatically.
 
 ## Tests / guarantees
 
@@ -67,6 +67,7 @@ npm run package        # build dist/reroute-v<version>.zip for the Web Store
 
 ## Status
 
-v0.1.0. Built; unit + conformance + UI gates green. The live in-Chrome redirect gate is
-queued for a desktop run (see `AWAY_LOG.md`). Deferred for later: Redirector JSON import,
-per-rule exclude patterns, raw-regex advanced mode.
+v0.1.0. Built; unit + conformance + UI gates green. The live in-Chrome redirect needs a
+30-second manual load in regular Chrome (see `AWAY_LOG.md` — automation can't drive a
+CDP-loaded extension here). Deferred for later: Redirector JSON import, per-rule exclude
+patterns, raw-regex advanced mode.

@@ -27,11 +27,14 @@ for you to run on your desktop. Nothing was pushed, no remote repo created, noth
 
 ## Queued for your return (human-eyeball / live, NOT skipped)
 
-1. **Live redirect gate**: on your desktop run `npm run test:browser`. It loads the unpacked
-   extension (headed Chrome) and asserts a real navigation is actually redirected + a
-   `testMatchOutcome` conformance pass. Could not run here — see decision D1.
-2. **Manual smoke**: `chrome://extensions` → Load unpacked → make a rule → confirm a real
-   site redirects, and the popup on/off pauses it.
+1. **Manual smoke in REGULAR Chrome (the reliable check):** `chrome://extensions` → enable
+   Developer mode → **Load unpacked** → pick `Projects/Reroute` → open Options → make a rule
+   (e.g. `https://example.com/*` → `https://example.org/$1`) → visit a matching URL → confirm
+   it redirects; toggle the popup off → confirm it stops. ~30 seconds.
+2. **`npm run test:browser`** is the automated version, but see D1: it does NOT work under
+   Playwright's Chrome-for-Testing on this machine (the extension loads but none of its
+   runtime — SW, pages, DNR rules — engages under CDP). Use the manual check above instead;
+   the harness is kept for a future Playwright/Chrome combo where CDP-loaded extensions run.
 3. **Ship steps** (all deliberately left for you): create `wizdes/Reroute`, push, then
    publish the zip to the Chrome Web Store. I created no remote and pushed nothing.
 4. Pick the final product name if "Reroute" isn't it (it's baked into manifest + repo only).
@@ -54,14 +57,17 @@ After fixes: 25 node tests + 11 UI checks, all green.
 
 ## Decision log (assumptions + judgment calls)
 
-- **D1 — Live extension gate couldn't run here; pivoted verification.** Chrome 137+ ignores
-  `--load-extension`; the modern `Extensions.loadUnpacked` CDP command DOES load it, but in
-  this environment headed Chrome can't connect (no window server) and under `--headless=new`
-  the MV3 service worker never starts and extension pages return `ERR_BLOCKED_BY_CLIENT`.
-  Rather than fake the gate, I proved the engine equivalence against real RE2 (`re2-wasm`)
-  and tested + screenshotted the full UI in plain chromium (it needs no extension). The only
-  unproven-here piece is Chrome physically performing the redirect — low risk (standard DNR
-  redirect) and queued as item 1 above. `test/browser.mjs` is written and ready for desktop.
+- **D1 — Live extension gate is un-runnable under Playwright here; verify manually in real
+  Chrome.** Chrome 137+ ignores `--load-extension`; the `Extensions.loadUnpacked` CDP command
+  loads it (returns an id), but the loaded extension is INERT under Chrome-for-Testing:
+  re-confirmed when you ran it (2026-06-17) — headed connected, the extension loaded, but the
+  options AND popup pages return `ERR_BLOCKED_BY_CLIENT`, the MV3 service worker is never
+  surfaced, and even a static-ruleset fixture did NOT redirect a normal http navigation. So
+  this is the automation tooling, not the extension or the display. Rather than fake the gate,
+  I proved engine equivalence against real RE2 (`re2-wasm`) and tested + screenshotted the
+  full UI in plain chromium (needs no extension). The only piece unproven by automation is
+  Chrome physically performing the redirect — low risk (standard DNR redirect; the compiled
+  rule is verified correct) and covered by the 30-second manual load above.
 - **D2 — DNR-only, no webRequest** (per approved plan). Future-proof; RE2 limits (no
   backreferences/lookaround) are fine for URL→URL redirects.
 - **D3 — Pattern UX = wildcard only** (your choice). No raw-regex UI. Compiles to RE2
