@@ -10,6 +10,7 @@ and 23 node tests pass alongside these.
 | 2 | `screenshots/02-advanced.png` | "Applies to" hidden under the Advanced toggle, revealed on click. |
 | 3 | `screenshots/03-debugger.png` | "Debug any URL" (where testing now lives): names the winning rule + resulting URL, and explains every rule (MATCH / DISABLED pills). |
 | 4 | `screenshots/04-popup.png` | Toolbar popup: global on/off, active-rule count, open editor. |
+| 5 | `screenshots/05-empty.png` | Empty state: centered "No rules yet" message aligned with the single "+ New rule" button below the list (no duplicate center button). |
 
 Not pictured (queued, see `../AWAY_LOG.md`): the live in-Chrome redirect itself — verify by
 loading unpacked in regular Chrome.

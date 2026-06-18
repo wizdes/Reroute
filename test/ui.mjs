@@ -97,6 +97,12 @@ async function run() {
     await page.locator('.sidebar #new-rule-btn').click();
     await page.waitForTimeout(80);
     ok((await page.locator('.rule-item').count()) === before + 1, '“+ New rule” adds a rule to the list');
+    ok((await page.locator('#rule-editor input[type="text"]').first().inputValue()) === 'New rule 1',
+      'new rule gets a unique default name “New rule 1”');
+    await page.locator('.sidebar #new-rule-btn').click();
+    await page.waitForTimeout(80);
+    ok((await page.locator('#rule-editor input[type="text"]').first().inputValue()) === 'New rule 2',
+      'the next new rule increments to “New rule 2”');
 
     // popup
     const pop = await browser.newPage({ viewport: { width: 230, height: 150 }, deviceScaleFactor: 2 });
@@ -104,6 +110,17 @@ async function run() {
     await pop.goto(`${base}/ui/popup.html`, { waitUntil: 'networkidle' });
     ok((await pop.locator('#status').textContent()).includes('active rule'), 'popup shows active rule count');
     await pop.screenshot({ path: join(shotDir, '04-popup.png') });
+
+    // delete every rule -> empty state shows the centered message and NO center button
+    let guard = 0;
+    while ((await page.locator('#rule-editor .editor-delete .btn.danger').count()) && guard++ < 12) {
+      await page.locator('#rule-editor .editor-delete .btn.danger').click();
+      await page.waitForTimeout(40);
+    }
+    ok((await page.locator('.list-empty').count()) === 1, 'empty list shows the “No rules yet” message');
+    ok((await page.locator('.editor-empty .btn').count()) === 0, 'no “+ New rule” button in the center empty state');
+    ok((await page.locator('.sidebar #new-rule-btn').count()) === 1, 'the only New rule button is in the sidebar');
+    await page.screenshot({ path: join(shotDir, '05-empty.png') });
   } finally {
     await browser.close();
     server.close();

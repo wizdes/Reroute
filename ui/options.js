@@ -94,8 +94,7 @@ function renderEditor() {
   if (!rule) {
     host.append(
       el('div', { class: 'card editor-empty' },
-        el('p', {}, 'Select a rule on the left, or create one to start.'),
-        el('button', { class: 'btn primary', onclick: newRule }, '+ New rule'))
+        el('p', {}, 'Select a rule to edit it, or add one with “+ New rule”.'))
     );
     return;
   }
@@ -209,8 +208,15 @@ function buildDebugger() {
 }
 
 // ---------- actions ----------
+// "New rule N" with the smallest N not already taken by an existing rule name.
+function nextRuleName() {
+  const taken = new Set(state.rules.map((r) => r.name));
+  let n = 1;
+  while (taken.has(`New rule ${n}`)) n++;
+  return `New rule ${n}`;
+}
 function newRule() {
-  const rule = { id: uid(), name: 'New rule', enabled: true, from: '', to: '', resourceTypes: ['main_frame'] };
+  const rule = { id: uid(), name: nextRuleName(), enabled: true, from: '', to: '', resourceTypes: ['main_frame'] };
   state.rules.unshift(rule);
   state.selectedId = rule.id;
   renderList();
