@@ -99,6 +99,9 @@ async function run() {
     ok((await page.locator('.rule-item').count()) === before + 1, '“+ New rule” adds a rule to the list');
     ok((await page.locator('#rule-editor input[type="text"]').first().inputValue()) === 'New rule 1',
       'new rule gets a unique default name “New rule 1”');
+    const namesAfterAdd = await page.locator('.rule-item .rule-name').allInnerTexts();
+    ok(namesAfterAdd[namesAfterAdd.length - 1] === 'New rule 1',
+      'new rule is appended at the bottom of the list');
     await page.locator('.sidebar #new-rule-btn').click();
     await page.waitForTimeout(80);
     ok((await page.locator('#rule-editor input[type="text"]').first().inputValue()) === 'New rule 2',
