@@ -217,10 +217,11 @@ function nextRuleName() {
 }
 function newRule() {
   const rule = { id: uid(), name: nextRuleName(), enabled: true, from: '', to: '', resourceTypes: ['main_frame'] };
-  state.rules.unshift(rule);
+  state.rules.push(rule);
   state.selectedId = rule.id;
   renderList();
   renderEditor();
+  document.querySelector('.rule-item.selected')?.scrollIntoView({ block: 'nearest' });
   document.querySelector('#rule-editor input.mono')?.focus();
   scheduleSave();
 }
