@@ -181,3 +181,14 @@ html, body {
   font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 50;
 }
 .toast.show { opacity: 1; }
+
+/* ---------- about footer ---------- */
+.about {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;
+  max-width: 1100px; margin: 0 auto; padding: 16px 20px 24px;
+  border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 12px;
+}
+.about .about-name { color: var(--text); font-weight: 600; }
+.about a { color: var(--accent); text-decoration: none; }
+.about a:hover { text-decoration: underline; }
