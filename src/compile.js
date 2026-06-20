@@ -174,7 +174,7 @@ export function debugUrl(rules, url, masterEnabled = true) {
     const rule = rules[i];
     let reason;
     if (!masterEnabled) {
-      reason = { index: i, rule, status: 'skipped', detail: 'Reroute is turned off globally.' };
+      reason = { index: i, rule, status: 'skipped', detail: 'URL Rerouter is turned off globally.' };
     } else if (!rule.enabled) {
       reason = { index: i, rule, status: 'disabled', detail: 'Rule is disabled.' };
     } else {

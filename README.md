@@ -1,4 +1,4 @@
-# Reroute
+# URL Rerouter
 
 A tiny Chrome (MV3) extension that redirects URLs with simple wildcard rules — and lets
 you **actually test a rule against example URLs before you save it**. That testing loop is

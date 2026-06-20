@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Reroute",
+  "name": "URL Rerouter",
   "version": "0.1.0",
   "description": "Redirect URLs with simple wildcard rules — and actually test them against example URLs before you save.",
   "icons": {
@@ -16,7 +16,7 @@
   },
   "action": {
     "default_popup": "ui/popup.html",
-    "default_title": "Reroute",
+    "default_title": "URL Rerouter",
     "default_icon": {
       "16": "icons/icon-16.png",
       "48": "icons/icon-48.png",
