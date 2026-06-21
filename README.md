@@ -1,73 +1,78 @@
 # URL Rerouter
 
-A tiny Chrome (MV3) extension that redirects URLs with simple wildcard rules — and lets
-you **actually test a rule against example URLs before you save it**. That testing loop is
-the whole point: no more save-and-pray like the original Redirector.
+A tiny Chrome (MV3) extension that redirects URLs with simple wildcard rules — and lets you
+**check exactly what a rule does before you rely on it**. No save-and-pray like the original
+Redirector.
 
-![the live tester](docs/screenshots/01-tester.png)
+![the rule editor](docs/screenshots/01-editor.png)
 
-## What makes it different
+## What it does
 
-- **Live preview through the same engine that ships.** As you type a rule, every example
-  URL shows the exact resulting redirect, with the captured `*` segments highlighted. The
-  preview and the installed rule run the *same* compiler (`src/compile.js`), so what you see
-  is what happens.
-- **Multi-URL test table + "use current tab".** Paste several URLs (or grab the active
-  tab's) and watch which match and where they land — catch over-matching instantly.
-- **Reverse debugger.** Paste any URL and see which rule fires, or exactly why none does
-  (no match / disabled / shadowed by a higher rule).
-- **Make a rule from an example.** Paste a before-URL and an after-URL; Reroute drafts the
-  wildcard rule for you (and generalizes the common "mirror this site" case).
-- **Minimal + small.** Pure static MV3 files, no backend, no build step, no framework.
-  The packaged extension is ~50 KB.
+- **Wildcard redirect rules.** Write a `From` pattern with `*` and a `To` target with `$1`,
+  `$2`, … Example: `https://github.com/*` → `https://dev.github.com/$1`.
+- **Debug any URL.** Paste a URL and see which rule fires and where it lands — or exactly why
+  none does (no match / disabled / shadowed by a higher rule). This is the testing loop: you
+  confirm a rule before trusting it instead of guessing.
+- **Priority by order.** Drag rules to reorder them; the topmost matching rule wins.
+- **Per-rule scope.** Under **Advanced**, choose whether a rule applies to top-level pages,
+  iframes, or both.
+- **Import / Export.** Back up or share your rules as JSON.
+- **On/off in one click.** The toolbar popup is a global switch with a live count of active
+  rules.
+- **Minimal + small.** Pure static MV3 files — no backend, no build step, no framework. The
+  packaged extension is ~50 KB.
+
+### What you debug is what ships
+
+The **Debug any URL** panel and the installed redirect run the *same* compiler
+(`src/compile.js`). Each rule compiles to a `declarativeNetRequest` dynamic rule
+(`regexFilter` + `regexSubstitution`), and a conformance test proves the regex we emit matches
+URLs **identically** under real RE2 (the engine Chrome uses) and the JS `RegExp` the debugger
+uses — so the debugger's verdict is the production verdict.
+
+![Debug any URL](docs/screenshots/03-debugger.png)
 
 ## Pattern syntax
 
 - `*` in the **From** pattern matches any run of characters and is captured.
-- Reference captures in the **To** target as `$1`, `$2`, … (up to `$9`).
+- Reference captures in the **To** target as `$1`, `$2`, … (up to `$9`). Use `$$` for a literal `$`.
 - The whole URL must match (patterns are anchored). Matching is case-sensitive.
-- Example: `https://github.com/*` → `https://dev.github.com/$1`.
+- Example: `https://reddit.com/*` → `https://old.reddit.com/$1`.
 
-Under the hood each rule compiles to a `declarativeNetRequest` dynamic rule
-(`regexFilter` + `regexSubstitution`). DNR uses RE2, so there are no backreferences or
-lookarounds — but for URL→URL redirects that covers what Redirector is actually used for.
+> Redirects compile to RE2 (Chrome's `declarativeNetRequest` engine), so there are no
+> backreferences or lookarounds — but for URL→URL redirects that covers what Redirector is
+> actually used for.
+
+## Install (load unpacked)
+
+1. Download or clone this repo.
+2. Open `chrome://extensions` → enable **Developer mode** → **Load unpacked** → pick this folder.
+3. Open the extension's **Options** to manage rules; the toolbar popup is the global on/off.
 
 ## Develop
 
 ```sh
-npm install            # playwright (for gates) + re2-wasm (for conformance)
-npm test               # unit + RE2 conformance (no browser needed)
-npm run test:ui        # drives the real UI in chromium + refreshes doc/screenshots
-npm run test:browser   # LIVE redirect gate — run on a desktop (see note below)
-npm run package        # build dist/reroute-v<version>.zip for the Web Store
+npm install      # playwright (for gates) + re2-wasm (for conformance)
+npm test         # unit tests + RE2 conformance (no browser needed)
+npm run test:ui  # drives the real UI in chromium + refreshes docs/screenshots
+npm run package  # build dist/reroute-v<version>.zip for the Chrome Web Store
 ```
 
-### Load it unpacked
-
-1. `chrome://extensions` → enable **Developer mode** → **Load unpacked** → pick this folder.
-2. Open the extension's **Options** to manage rules; the toolbar popup is the global on/off.
-
-> Note: Chrome 137+ ignores the old `--load-extension` switch, and under Playwright's
-> Chrome-for-Testing a CDP-loaded extension loads but stays inert (no service worker, pages
-> blocked, DNR rules don't fire), so `npm run test:browser` can't drive it. Verify the live
-> redirect with the manual load above in **regular Chrome** — that's the reliable check.
-> `npm test` + `npm run test:ui` cover everything else automatically.
-
-## Tests / guarantees
+Tests:
 
 - `test/compile.test.mjs` — the wildcard compiler/matcher (escaping, captures, `$n`
   substitution, anchoring, priority resolution).
-- `test/conformance.test.mjs` — proves the regex we emit matches URLs **identically** under
-  real RE2 (`re2-wasm`, the engine DNR uses) and under the JS `RegExp` the preview uses.
-  This is the "preview == production" proof for the pattern subset.
-- `test/infer.test.mjs` — the example→rule inference round-trips.
-- `test/ui.mjs` — drives the actual editor/tester/inference/debugger in chromium.
-- `test/browser.mjs` — the live gate: loads the unpacked extension and asserts a real
-  navigation is redirected end to end (desktop only).
+- `test/conformance.test.mjs` — the "what you debug is what ships" proof: the emitted regex
+  matches URLs identically under real RE2 (`re2-wasm`) and the JS `RegExp` the debugger uses.
+- `test/ui.mjs` — drives the actual editor and reverse debugger in chromium.
+- `test/browser.mjs` — a live gate that loads the unpacked extension and asserts a real
+  navigation is redirected end to end (desktop only; see the note below).
 
-## Status
+> Note: Chrome 137+ ignores the old `--load-extension` switch, and under Playwright's
+> Chrome-for-Testing a CDP-loaded extension loads but stays inert (no service worker, pages
+> blocked, DNR rules don't fire), so `npm run test:browser` can't drive it everywhere. To
+> verify a live redirect, use the **Load unpacked** steps above in regular Chrome.
 
-v0.1.0. Built; unit + conformance + UI gates green. The live in-Chrome redirect needs a
-30-second manual load in regular Chrome (see `AWAY_LOG.md` — automation can't drive a
-CDP-loaded extension here). Deferred for later: Redirector JSON import, per-rule exclude
-patterns, raw-regex advanced mode.
+## License
+
+MIT — see [LICENSE](LICENSE).
