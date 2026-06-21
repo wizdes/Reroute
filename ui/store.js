@@ -1,7 +1,7 @@
 // Storage adapter. Inside the extension it uses chrome.storage.local (which the
 // background worker watches to rebuild the real redirect rules). Outside the extension
 // (a plain browser tab — used for dogfooding and the UI screenshot test) it falls back
-// to localStorage, so the entire editor/tester/inference UX runs without the extension.
+// to localStorage, so the entire editor/debugger UX runs without the extension.
 
 const RULES_KEY = 'rules';
 const ENABLED_KEY = 'enabled';
@@ -62,12 +62,4 @@ export function onExternalChange(cb) {
   } else {
     mockListeners.push(cb);
   }
-}
-
-export async function currentTabUrl() {
-  if (typeof chrome !== 'undefined' && chrome?.tabs?.query) {
-    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    return tab?.url || '';
-  }
-  return globalThis.__REROUTE_MOCK_TAB__ || '';
 }

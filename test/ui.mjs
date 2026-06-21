@@ -1,8 +1,7 @@
-// UI integration + screenshots. The editor, live tester, inference and reverse debugger
-// are pure client logic over src/compile.js + src/infer.js — they need no extension. We
-// serve the project over http, open the real options.html in plain chromium (storage
-// falls back to localStorage + a seed), drive the real feature flow, assert the visible
-// results, and capture the screenshot strip used in the handoff.
+// UI integration + screenshots. The editor and reverse debugger are pure client logic
+// over src/compile.js — they need no extension. We serve the project over http, open the
+// real options.html in plain chromium (storage falls back to localStorage + a seed), drive
+// the real feature flow, assert the visible results, and capture the screenshot strip.
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -46,7 +45,6 @@ async function run() {
     const page = await browser.newPage({ viewport: { width: 1180, height: 900 }, deviceScaleFactor: 2 });
     await page.addInitScript((seed) => {
       window.__REROUTE_SEED__ = seed;
-      window.__REROUTE_MOCK_TAB__ = 'https://github.com/anthropics/claude-code';
     }, SEED);
     await page.goto(`${base}/ui/options.html`, { waitUntil: 'networkidle' });
 
@@ -83,10 +81,10 @@ async function run() {
     await page.waitForTimeout(120);
 
     // reverse debugger — testing now lives here
-    await page.locator('#debugger input').fill('https://github.com/anthropics/claude-code');
+    await page.locator('#debugger input').fill('https://github.com/octocat/Hello-World');
     await page.locator('#debugger').getByText('Check').click();
     await page.waitForTimeout(120);
-    ok((await page.locator('.debug-winner').textContent()).includes('dev.github.com/anthropics/claude-code'),
+    ok((await page.locator('.debug-winner').textContent()).includes('dev.github.com/octocat/Hello-World'),
       'reverse debugger names the resulting URL');
     ok((await page.locator('.debug-reasons .pill').count()) >= 2, 'reverse debugger explains every rule');
     await page.locator('#debugger').scrollIntoViewIfNeeded();
