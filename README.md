@@ -73,6 +73,17 @@ Tests:
 > blocked, DNR rules don't fire), so `npm run test:browser` can't drive it everywhere. To
 > verify a live redirect, use the **Load unpacked** steps above in regular Chrome.
 
+## Privacy
+
+URL Rerouter is private by design. Your redirect rules and the on/off setting are stored
+**locally on your device** via `chrome.storage.local` and are never transmitted anywhere.
+Redirects are performed by Chrome's own `declarativeNetRequest` engine — the extension does
+not run code on the pages you visit. The `<all_urls>` host permission exists **only** so your
+redirect rules can match any site; it does **not** read page content or send any browsing data
+anywhere. No analytics, no tracking, no third parties.
+
+Full details: [PRIVACY.md](PRIVACY.md).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
