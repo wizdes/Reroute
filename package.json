@@ -3,7 +3,24 @@
   "version": "0.1.0",
   "description": "Chrome MV3 extension: redirect URLs with simple wildcard rules, and test them before you save.",
   "type": "module",
-  "private": true,
+  "license": "MIT",
+  "author": "Yi Li",
+  "homepage": "https://github.com/wizdes/Reroute#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wizdes/Reroute.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wizdes/Reroute/issues"
+  },
+  "keywords": [
+    "chrome-extension",
+    "manifest-v3",
+    "redirect",
+    "url-rewrite",
+    "declarativeNetRequest",
+    "redirector"
+  ],
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "test:ui": "node test/ui.mjs",
