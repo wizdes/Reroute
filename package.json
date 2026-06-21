@@ -26,7 +26,8 @@
     "test:ui": "node test/ui.mjs",
     "test:browser": "node test/browser.mjs",
     "icons": "node tools/gen-icons.mjs",
-    "package": "node tools/package.mjs"
+    "package": "node tools/package.mjs",
+    "store-assets": "node store-assets/render.mjs"
   },
   "devDependencies": {
     "playwright": "^1.49.0",
