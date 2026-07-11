@@ -68,8 +68,28 @@ test('toDNRRule builds a full dynamic rule with defaults', () => {
     id: 7,
     priority: 3,
     action: { type: 'redirect', redirect: { regexSubstitution: 'https://b.com/\\1' } },
-    condition: { regexFilter: '^https://a\\.com/(.*)$', resourceTypes: ['main_frame'] },
+    condition: {
+      regexFilter: '^https://a\\.com/(.*)$',
+      resourceTypes: ['main_frame'],
+      isUrlFilterCaseSensitive: true,
+    },
   });
+});
+
+test('toDNRRule pins matching to case-sensitive so engine == preview', () => {
+  // Chrome 118+ defaults DNR regexFilter matching to case-INSENSITIVE, but the
+  // JS preview matcher (evalRule) is case-sensitive. Without this flag the
+  // installed engine would redirect capitalization-only differences the preview
+  // reports as "no match" — breaking the preview == engine guarantee.
+  const dnr = toDNRRule(
+    { from: 'https://a.com/*', to: 'https://b.com/$1' },
+    { id: 1, priority: 1 }
+  );
+  assert.equal(dnr.condition.isUrlFilterCaseSensitive, true);
+
+  // Cross-check: the preview matcher rejects a case-different URL, so the engine
+  // (now case-sensitive) must reject it too.
+  assert.equal(evalRule({ from: 'https://a.com/*', to: 'https://b.com/$1' }, 'https://A.COM/x').matched, false);
 });
 
 test('toDNRRule honors explicit resourceTypes', () => {

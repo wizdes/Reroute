@@ -112,11 +112,12 @@ For the `to` side, `toRegexSubstitution()` converts your `$1` into `\1`, the for
 
 **Where the guarantee currently stops.** Honesty requires listing what the shared compiler does *not* cover, because Chrome adds behavior around the regex itself:
 
-- **Letter case.** The preview matches case-sensitively (`Reddit.com` is not `reddit.com`). But since Chrome 118, DNR treats a rule's pattern as case-*insensitive* unless the rule explicitly says otherwise — and the compiled rules don't set that flag (`toDNRRule()` in `src/compile.js` emits no `isUrlFilterCaseSensitive`). So a URL that differs from your pattern only in capitalization can be redirected by Chrome while the debugger reports "no match." The conformance test can't see this, because it compares regex engines, not Chrome's rule settings.
 - **Page vs. iframe scope.** `debugUrl()` checks only the URL; it ignores a rule's "Applies to" setting. A rule scoped to iframes only can show up as the debugger's winner even though Chrome would never apply it to a page you navigate to.
 - **Install-time failures.** If Chrome rejects a rule update (see the limits note above), the debugger still reasons about the rules as saved, not as installed.
 
-These are edges of the current implementation, not the common path — for ordinary lowercase URL-to-URL rules applied to pages, the debugger's verdict and Chrome's behavior line up, and the test suite keeps the compiler itself honest.
+These are edges of the current implementation, not the common path — for ordinary URL-to-URL rules applied to pages, the debugger's verdict and Chrome's behavior line up, and the test suite keeps the compiler itself honest.
+
+(One gap listed here previously — letter case — is now closed. Chrome 118+ defaults DNR matching to case-*insensitive*, so `toDNRRule()` now pins every emitted rule with `isUrlFilterCaseSensitive: true`, matching the preview's case-sensitive behavior. `test/compile.test.mjs` asserts the flag is present.)
 
 The debugger itself is `debugUrl()` in `src/compile.js`: it walks the rule list top to bottom, evaluating each rule's compiled pattern against your URL, and records a verdict per rule — so instead of a silent "nothing happened," you see *why*.
 

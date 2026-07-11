@@ -10,8 +10,10 @@
 //   - A "from" pattern is literal text plus `*` wildcards. Each `*` matches any run of
 //     characters and is captured, referenced in the "to" target as $1, $2, ... (max $9).
 //   - The whole URL must match (the pattern is anchored), matching Redirector's default.
-//   - Matching is case-sensitive (RE2 default), so the JS preview and Chrome's RE2
-//     engine agree exactly. See test/browser.mjs for the conformance proof.
+//   - Matching is case-sensitive. The JS preview matcher is case-sensitive by
+//     default; Chrome's DNR defaults to case-INSENSITIVE since Chrome 118, so
+//     toDNRRule() pins every emitted rule with isUrlFilterCaseSensitive:true to
+//     keep preview and engine in agreement. See test/browser.mjs for the proof.
 
 const MAX_CAPTURES = 9; // DNR regexSubstitution only supports \1..\9
 
@@ -128,7 +130,11 @@ export function toDNRRule(rule, { id, priority }) {
     id,
     priority,
     action: { type: 'redirect', redirect: { regexSubstitution } },
-    condition: { regexFilter, resourceTypes },
+    // Chrome 118+ defaults regexFilter/urlFilter matching to case-INSENSITIVE.
+    // The JS preview matcher (evalRule) is case-sensitive, so pin the engine to
+    // case-sensitive too, or the preview would say "no match" for a
+    // capitalization-only difference while Chrome still redirects (preview != engine).
+    condition: { regexFilter, resourceTypes, isUrlFilterCaseSensitive: true },
   };
 }
 
